@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>node-kayles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #EDEFE9;
+    --paper-line: #C3CDC0;
+    --ink: #1B2A32;
+    --ink-soft: #4A5A5F;
+    --gold: #B8901F;
+    --rose: #2e1917;
+    --teal: #2F6E6E;
+    --paper-card: #F6F7F2;
+    --shadow: rgba(27,42,50,0.08);
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;
+    padding:0;
+  }
+  body{
+    background:
+      linear-gradient(var(--paper-line) 1px, transparent 1px) 0 0 / 28px 28px,
+      linear-gradient(90deg, var(--paper-line) 1px, transparent 1px) 0 0 / 28px 28px,
+      var(--paper);
+    background-attachment:local;
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    min-height:100vh;
+    padding:32px 20px 60px;
+    height: 100vh;
+  }
+  .wrap{max-width:920px;margin:0 auto;}
+
+  header{margin-bottom:28px;}
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin:0 0 6px;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-optical-sizing:auto;
+    font-weight:600;
+    font-size:clamp(28px,4.4vw,42px);
+    margin:0 0 6px;
+    letter-spacing:-0.01em;
+  }
+  .sub{
+    font-size:14.5px;
+    color:var(--ink-soft);
+    max-width:60ch;
+    line-height:1.5;
+    margin:0;
+  }
+
+  .panel{
+    background:var(--paper-card);
+    border:1px solid var(--paper-line);
+    border-radius:3px;
+    box-shadow:0 1px 2px var(--shadow);
+  }
+
+  .controls{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    align-items:flex-end;
+    padding:16px 18px;
+    margin:22px 0 20px;
+  }
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  select, input[type=number]{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px;
+    padding:7px 10px;
+    border:1px solid var(--ink-soft);
+    border-radius:2px;
+    background:var(--paper);
+    color:var(--ink);
+    width:88px;
+  }
+  select:focus, input:focus, button:focus, .cell:focus{
+    outline:2px solid var(--teal);
+    outline-offset:2px;
+  }
+  button.primary{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    letter-spacing:0.03em;
+    padding:9px 16px;
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    border-radius:2px;
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  button.primary:hover{background:var(--teal);}
+  .hint{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+
+  .board-area{
+    padding:28px 24px 22px;
+    margin-bottom:18px;
+    overflow-x:auto;
+  }
+  .board-grid{
+    display:inline-grid;
+    gap:6px;
+    margin:0 auto;
+  }
+  .cell{
+    width:38px;height:38px;
+    display:flex;align-items:center;justify-content:center;
+    position:relative;
+    background:transparent;
+    border:none;
+    cursor:pointer;
+    padding:0;
+  }
+  .cell:disabled{cursor:default;}
+  .dot{
+    width:16px;height:16px;
+    border-radius:50%;
+    background:var(--ink);
+    transition:transform .12s ease, background .12s ease;
+  }
+  .cell:not(:disabled):hover .dot{
+    transform:scale(1.25);
+    background:var(--teal);
+  }
+  .cell.removed .dot{display:none;}
+  .cell.removed::before, .cell.removed::after{
+    content:'';
+    position:absolute;
+    width:20px;height:2px;
+    background:var(--rose);
+    opacity:0.55;
+    top:50%;left:50%;
+  }
+  .cell.removed::before{transform:translate(-50%,-50%) rotate(45deg);}
+  .cell.removed::after{transform:translate(-50%,-50%) rotate(-45deg);}
+  .nimber-tag{
+    position:absolute;
+    top:-13px; right:-11px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    font-weight:600;
+    color:var(--gold);
+    background:var(--paper-card);
+    border:1px solid var(--gold);
+    border-radius:8px;
+    padding:0px 4px;
+    line-height:1.4;
+    pointer-events:none;
+  }
+
+  .status-row{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:space-between;
+    align-items:center;
+    gap:14px;
+    padding:16px 18px;
+    margin-bottom:14px;
+  }
+  .turn{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px;
+  }
+  .turn .who{font-weight:600;}
+  .turn.p1 .who{color:var(--teal);}
+  .turn.p2 .who{color:var(--rose);}
+
+  .toggle{
+    display:flex;align-items:center;gap:8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .toggle input{width:15px;height:15px;accent-color:var(--gold);cursor:pointer;}
+
+  .margin-note{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:var(--gold);
+    background:var(--paper-card);
+    border:1px dashed var(--gold);
+    border-radius:2px;
+    padding:8px 12px;
+    display:none;
+  }
+  .margin-note.show{display:block;}
+  .margin-note b{font-weight:600;}
+
+  .winner-banner{
+    display:none;
+    padding:14px 18px;
+    margin-bottom:14px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px;
+    border-left:3px solid var(--gold);
+  }
+  .winner-banner.show{display:block;}
+
+  footer{
+    margin-top:34px;
+    font-size:12px;
+    color:var(--ink-soft);
+    line-height:1.6;
+    border-top:1px solid var(--paper-line);
+    padding-top:14px;
+  }
+  footer code{
+    font-family:'IBM Plex Mono', monospace;
+    background:var(--paper-card);
+    padding:1px 5px;
+    border-radius:2px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .dot, button.primary{transition:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">the game</p>
+    <h1>Node-Kayles</h1>
+    <p class="sub">Click a vertex to remove it and its neighbors. The player left without a move loses. Toggle the margin notes below to see each move's resulting nimber, computed live.</p>
+  </header>
+
+  <div class="controls panel">
+    <div class="field">
+      <label for="widthSel">Width</label>
+      <select id="widthSel">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3" selected>3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="lenInput">Length (n)</label>
+      <input type="number" id="lenInput" min="2" max="14" value="6">
+    </div>
+    <div class="field">
+      <button class="primary" id="newGameBtn">New game</button>
+    </div>
+    <div class="field" style="flex:1;min-width:180px;">
+      <span class="hint" id="rangeHint"></span>
+    </div>
+  </div>
+
+  <div class="board-area panel">
+    <div class="board-grid" id="boardGrid"></div>
+  </div>
+
+  <div class="winner-banner panel" id="winnerBanner"></div>
+
+  <div class="status-row panel">
+    <div class="turn" id="turnLabel"></div>
+    <label class="toggle">
+      <input type="checkbox" id="nimberToggle">
+      Show nimbers
+    </label>
+  </div>
+
+  <div class="margin-note" id="marginNote"></div>
+
+  <footer>
+    Computation runs client-side in JavaScript, porting the same memoized-recursion algorithm (component decomposition + symmetry canonicalization) used in the underlying research solver, written originally in C++. Board lengths above roughly 12&ndash;14 (width 3&ndash;4) or 8&ndash;10 (width 5&ndash;6) may compute more slowly, since nimber calculation is exponential in the worst case. Widths 1, 2, 3, 4, and 6 are checked against known published values; width 5 uses the same validated algorithm but has no published reference sequence to check against.
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const memoByWidth = {};
+
+  function trim(b){
+    while(b.length && b[0]===0) b.shift();
+    while(b.length && b[b.length-1]===0) b.pop();
+    return b;
+  }
+  function mirrorRows(c, W){
+    let r=0;
+    for(let i=0;i<W;i++) if(c & (1<<i)) r |= (1<<(W-1-i));
+    return r;
+  }
+  function canonical(b, W){
+    b = trim(b.slice());
+    if(b.length===0) return b;
+    const rev = b.slice().reverse();
+    const mir = b.map(c=>mirrorRows(c,W));
+    const revmir = mir.slice().reverse();
+    let best = b;
+    const cmp = (a,c)=>{
+      for(let i=0;i<Math.max(a.length,c.length);i++){
+        const av=a[i]===undefined?-1:a[i], cv=c[i]===undefined?-1:c[i];
+        if(av!==cv) return av-cv;
+      }
+      return 0;
+    };
+    if(cmp(rev,best)<0) best=rev;
+    if(cmp(mir,best)<0) best=mir;
+    if(cmp(revmir,best)<0) best=revmir;
+    return best;
+  }
+  function key(b){ return b.join(','); }
+
+  function splitComponents(b, W){
+    const n = b.length;
+    const visited = Array.from({length:n},()=>new Array(W).fill(false));
+    const comps = [];
+    for(let c=0;c<n;c++){
+      for(let r=0;r<W;r++){
+        if(!(b[c]&(1<<r)) || visited[c][r]) continue;
+        const verts=[];
+        const stack=[[c,r]];
+        visited[c][r]=true;
+        let cmin=c,cmax=c;
+        const dc=[0,0,1,-1], dr=[1,-1,0,0];
+        while(stack.length){
+          const [cc,rr]=stack.pop();
+          verts.push([cc,rr]);
+          if(cc<cmin)cmin=cc; if(cc>cmax)cmax=cc;
+          for(let k=0;k<4;k++){
+            const nc=cc+dc[k], nr=rr+dr[k];
+            if(nc<0||nc>=n||nr<0||nr>=W) continue;
+            if(!(b[nc]&(1<<nr))||visited[nc][nr]) continue;
+            visited[nc][nr]=true;
+            stack.push([nc,nr]);
+          }
+        }
+        const comp = new Array(cmax-cmin+1).fill(0);
+        for(const [cc,rr] of verts) comp[cc-cmin] |= (1<<rr);
+        comps.push(comp);
+      }
+    }
+    return comps;
+  }
+
+  function applyMove(b, col, row, W){
+    const nb = b.slice();
+    nb[col] &= ~(1<<row);
+    if(row>0) nb[col] &= ~(1<<(row-1));
+    if(row<W-1) nb[col] &= ~(1<<(row+1));
+    if(col>0) nb[col-1] &= ~(1<<row);
+    if(col+1<nb.length) nb[col+1] &= ~(1<<row);
+    return nb;
+  }
+
+  function mex(vals){
+    vals = Array.from(new Set(vals)).sort((a,b)=>a-b);
+    let m=0;
+    for(const v of vals){ if(v===m) m++; else if(v>m) break; }
+    return m;
+  }
+
+  function grundy(b, W){
+    b = canonical(b, W);
+    if(b.length===0) return 0;
+    const memo = memoByWidth[W] || (memoByWidth[W]={});
+    const k = key(b);
+    if(k in memo) return memo[k];
+    const reach=[];
+    for(let c=0;c<b.length;c++){
+      for(let r=0;r<W;r++){
+        if(!(b[c]&(1<<r))) continue;
+        const after = applyMove(b,c,r,W);
+        let g=0;
+        for(const comp of splitComponents(after,W)) g ^= grundy(comp,W);
+        reach.push(g);
+      }
+    }
+    const m = mex(reach);
+    memo[k]=m;
+    return m;
+  }
+
+  let W = 3, N = 6;
+  let board = [];
+  let turn = 1; // 1 or 2
+  let gameOver = false;
+
+  const boardGrid = document.getElementById('boardGrid');
+  const turnLabel = document.getElementById('turnLabel');
+  const nimberToggle = document.getElementById('nimberToggle');
+  const marginNote = document.getElementById('marginNote');
+  const winnerBanner = document.getElementById('winnerBanner');
+  const widthSel = document.getElementById('widthSel');
+  const lenInput = document.getElementById('lenInput');
+  const rangeHint = document.getElementById('rangeHint');
+
+  function suggestedMax(w){
+    if(w===1) return 30;
+    if(w===2) return 30;
+    if(w===3) return 14;
+    if(w===4) return 12;
+    if(w===5) return 10;
+    return 8; // width 6
+  }
+  function updateHint(){
+    rangeHint.textContent = 'Recommended max length for width ' + widthSel.value + ': ' + suggestedMax(parseInt(widthSel.value,10)) + ' (larger boards compute more slowly).';
+  }
+
+  function newGame(){
+    W = parseInt(widthSel.value,10);
+    N = Math.max(2, Math.min(parseInt(lenInput.value,10)||6, 40));
+    board = new Array(N).fill((1<<W)-1);
+    turn = 1;
+    gameOver = false;
+    winnerBanner.classList.remove('show');
+    render();
+  }
+
+  function currentVertices(){
+    const v=[];
+    for(let c=0;c<board.length;c++) for(let r=0;r<W;r++) if(board[c]&(1<<r)) v.push([c,r]);
+    return v;
+  }
+
+  function playMove(col,row){
+    if(gameOver) return;
+    board = applyMove(board,col,row,W);
+    if(currentVertices().length===0){
+      gameOver = true;
+      winnerBanner.textContent = 'No moves left for Player ' + (turn===1?2:1) + ' — Player ' + turn + ' wins.';
+      winnerBanner.classList.add('show');
+    } else {
+      turn = turn===1?2:1;
+    }
+    render();
+  }
+
+  function render(){
+    boardGrid.style.gridTemplateColumns = 'repeat(' + N + ', 38px)';
+    boardGrid.style.gridTemplateRows = 'repeat(' + W + ', 38px)';
+    boardGrid.innerHTML = '';
+
+    const showNimbers = nimberToggle.checked && !gameOver;
+    // grid is column-major in data, but we render row-major visually
+    const cellsByPos = {};
+    for(let r=0;r<W;r++){
+      for(let c=0;c<N;c++){
+        const present = !!(board[c]&(1<<r));
+        const btn = document.createElement('button');
+        btn.className = 'cell' + (present?'':' removed');
+        btn.setAttribute('aria-label', present ? ('Play vertex row '+(r+1)+', column '+(c+1)) : 'Removed');
+        btn.disabled = !present || gameOver;
+        if(present){
+          const dot = document.createElement('div');
+          dot.className='dot';
+          btn.appendChild(dot);
+          btn.addEventListener('click', ()=>playMove(c,r));
+          if(showNimbers){
+            const after = applyMove(board,c,r,W);
+            let g=0;
+            for(const comp of splitComponents(after,W)) g ^= grundy(comp,W);
+            const tag = document.createElement('span');
+            tag.className='nimber-tag';
+            tag.textContent = g;
+            btn.appendChild(tag);
+          }
+        }
+        btn.style.gridColumn = (c+1);
+        btn.style.gridRow = (r+1);
+        boardGrid.appendChild(btn);
+      }
+    }
+
+    turnLabel.className = 'turn p' + turn;
+    turnLabel.innerHTML = gameOver ? 'Game over' : ('Turn: <span class="who">Player ' + turn + '</span>');
+
+    if(showNimbers){
+      const g = grundy(board, W);
+      marginNote.classList.add('show');
+      marginNote.innerHTML = 'Current position: <b>G = ' + g + '</b> — ' +
+        (g===0
+          ? 'a P-position. The player to move (Player ' + turn + ') loses under optimal play.'
+          : 'an N-position. Player ' + turn + ' has a winning move.');
+    } else {
+      marginNote.classList.remove('show');
+    }
+  }
+
+  widthSel.addEventListener('change', ()=>{ updateHint(); newGame(); });
+  lenInput.addEventListener('change', newGame);
+  document.getElementById('newGameBtn').addEventListener('click', newGame);
+  nimberToggle.addEventListener('change', render);
+
+  updateHint();
+  newGame();
+})();
+</script>
+</body>
+</html>
